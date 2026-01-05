@@ -18,18 +18,23 @@ export class TaskPresenter {
     this.view.renderTasks(this.tasks)
 
     this.unsubscribe = this.model.subscribeToEvents(event => {
+      if (event.type === 'HEARTBEAT') return
+
       if (event.type === 'CREATED' && event.task) {
-        this.tasks = [...this.tasks, event.task]
-        this.view.renderTasks(this.tasks)
+        const exists = this.tasks.some(t => t.id === event.task.id)
+        if (!exists) {
+          this.tasks = [...this.tasks, event.task]
+          this.view.renderTasks(this.tasks)
+        }
       }
 
-      if (event.type === 'UPDATED') {
+      if (event.type === 'UPDATED' && event.task) {
         this.tasks = this.tasks.map(t =>
           t.id === event.task.id ? event.task : t
         )
         this.view.renderTasks(this.tasks)
       }
-      
+
       if (event.type === 'DELETED') {
         this.tasks = this.tasks.filter(t => t.id !== event.taskId)
         this.view.renderTasks(this.tasks)

@@ -22,13 +22,32 @@ export class TaskModel {
     await api.patch(`/task/${id}/toggle`)
   }
 
-  subscribeToEvents(onEvent: (event: TaskEvent) => void) {
-    const source = new EventSource('http://localhost:8080/task/events')
+  subscribeToEvents(callback: (event: TaskEvent) => void) {
+    let eventSource: EventSource | null = null
 
-    source.onmessage = e => {
-      onEvent(JSON.parse(e.data))
+    const connect = () => {
+      eventSource = new EventSource(
+        'https://todo-engenharia-software.onrender.com/task/events'
+      )
+
+      eventSource.onmessage = e => {
+        const event: TaskEvent = JSON.parse(e.data)
+
+        if (event.type === 'HEARTBEAT') return
+
+        callback(event)
+      }
+
+      eventSource.onerror = () => {
+        eventSource?.close()
+        setTimeout(connect, 3000)
+      }
     }
 
-    return () => source.close()
+    connect()
+
+    return () => {
+      eventSource?.close()
+    }
   }
 }
